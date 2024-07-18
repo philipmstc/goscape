@@ -1,176 +1,154 @@
 package model
 
 import (
-    "fmt"
-    "math/rand"
+	"fmt"
+	"math/rand"
 )
 
 type Inventory struct {
-    items map[string]int
+	Items map[string]int
 }
 
-type Skill struct { 
-    ProductLines []Recipe
+type Skill struct {
+	ProductLines [][]Recipe
 }
 
-func PrimaryResource(name string, tiers int) []Recipe {
-    recipes := []Recipe{}
-    for i := range(tiers) {
-        product := Product{name, i+1}
-        recipes = append(recipes, Recipe{nil, product})
-    }
-    return recipes
+func PrimaryResource(Name string, Tiers int) []Recipe {
+	Recipes := []Recipe{}
+	for i := range Tiers {
+		dProduct := Product{Name, i + 1}
+		Recipes = append(Recipes, Recipe{nil, dProduct})
+	}
+	return Recipes
 }
 
-type Product struct { 
-    name string
-    tier int
-}
-func (this Product) String() string { 
-    return fmt.Sprintf("%v-%v", this.name, this.tier)
+func SelfSingleProcessResource(resource string, Name string, Tiers int) []Recipe {
+	Recipes := []Recipe{}
+	for i := range Tiers {
+		dProduct := Product{Name, i + 1}
+		Components := make(map[Product]int)
+		cProd := Product{resource, i + 1}
+		Components[cProd] = 1
+		Recipes = append(Recipes, Recipe{Components, dProduct})
+	}
+	return Recipes
 }
 
-type Recipe struct { 
-    components map[Product]int
-    product Product
+type Product struct {
+	Name string
+	Tier int
+}
+
+func (this Product) String() string {
+	return fmt.Sprintf("%v-%v", this.Name, this.Tier)
+}
+
+type Recipe struct {
+	Components map[Product]int
+	Product    Product
 }
 
 func (this Recipe) String() string {
-    if this.components != nil {
-        var comps string = ""
-        for k, v := range(this.components) {
-            comps = comps + fmt.Sprintf("%v*%v + ", v, k)
-        }
-        comps = comps[:len(comps)-2]
-        return fmt.Sprintf("Make %v from (%v)", this.product, comps)
-    } else {
-        return fmt.Sprintf("(Free) %v", this.product)
-    }
+	if this.Components != nil {
+		var comps string = ""
+		for k, v := range this.Components {
+			comps = comps + fmt.Sprintf("%v*%v + ", v, k)
+		}
+		if len(comps) > 2 {
+			comps = comps[:len(comps)-2]
+		}
+		return fmt.Sprintf("Make %v from (%v)", this.Product, comps)
+	} else {
+		return fmt.Sprintf("(Free) %v", this.Product)
+	}
 }
 
-type Tile struct { 
-    actions []Action
-    x int
-    y int
+type Tile struct {
+	Actions []Action
 }
 
 type Action interface {
-    Do()
-    GetName() string
+	Do(player *Player)
+	GetName() string
 }
 
 type MakeProduct struct {
-    recipe Recipe
-    xpGain int
+	Recipe Recipe
+	XpGain uint64
+	Skill *Skill
 }
 
-func (mk MakeProduct) Do() {
-    fmt.Printf("xp: %v recipe: %v"  , mk.xpGain, mk.recipe)
+func (mk MakeProduct) Do(player *Player) {
+	if (player.Items.CanCreate(mk.Recipe.Product, []Recipe{mk.Recipe})) {
+		player.Items.Create(mk.Recipe.Product, mk.Recipe)
+		player.SkillsXp[mk.Skill] += mk.XpGain;
+		fmt.Printf("xp: %v Recipe: %v", mk.XpGain, mk.Recipe)
+	} else { 
+		fmt.Printf("Cannot create, not enoguh components in inventory");
+	}
 }
 
-func (mk MakeProduct) GetName() string { 
-    return fmt.Sprintf("Make [%v] for %v xp", mk.recipe.product.name, mk.xpGain) 
+func (mk MakeProduct) GetName() string {
+	return fmt.Sprintf("Make [%v] for %v xp", mk.Recipe.Product.Name, mk.XpGain)
 }
 
-// only works if theres only one recipe per product
-func (this Inventory) CanCreate(product Product, recipeBook []Recipe) bool {
-    for _, r := range recipeBook {
-        if (r.product.name == product.name) { 
-            for k,v := range r.components {
-                if (this.items[k.name] < v) { 
-                    return false
-                }
-            }
-            return true
-        }
-    }
-    return false
+// only works if theres only one Recipe per Product
+func (this Inventory) CanCreate(Product Product, RecipeBook []Recipe) bool {
+	for _, r := range RecipeBook {
+		if r.Product.Name == Product.Name {
+			for k, v := range r.Components {
+				if this.Items[k.Name] < v {
+					return false
+				}
+			}
+			return true
+		}
+	}
+	return false
 }
 
-func (this Inventory) Create(product Product, recipe Recipe) {
-    for k, v := range recipe.components {
-        this.items[k.name] -= v
-    }
-    this.items[recipe.product.name] += 1
+func (this Inventory) Create(Product Product, Recipe Recipe) {
+	for k, v := range Recipe.Components {
+		this.Items[k.Name] -= v
+	}
+	this.Items[Recipe.Product.Name] += 1
 }
 
-func GenerateProductLineNM(name string, skills []Skill, minSkills int, maxSkills int) []Recipe {
-    const NEW_SKILL_RARITY_FACTOR = 2
-    t := rand.Intn(len(skills) * NEW_SKILL_RARITY_FACTOR + 1)
-    var targetSkill Skill
-    if t == (len(skills)*NEW_SKILL_RARITY_FACTOR) { 
-        targetSkill = Skill{[]Recipe{}}
-    } else {
-        targetSkill = skills[t % len(skills)]
-    }
-    comps := make(map[Product]int)
-    var actualSkills int
-    if minSkills >= maxSkills {
-        actualSkills = minSkills
-    } else { 
-        actualSkills = minSkills + rand.Intn(maxSkills-minSkills)
-    }
-    fmt.Printf("Making product line from %v 'skills'\n", actualSkills)
-    for i := 0; i <= actualSkills; i++ {
-        var s int
-        for {
-            s = rand.Intn(len(skills))
-            if s != ((t)%len(skills)) { 
-                break;
-            }
-        }
-        sourceSkill := skills[s]
-        sourceRecipeIndex := rand.Intn(len(sourceSkill.ProductLines))
-        sourceRecipe := sourceSkill.ProductLines[sourceRecipeIndex]
-        _, ok := comps[sourceRecipe.product]
-        if ok {
-            comps[sourceRecipe.product] += 1
-        } else {
-            comps[sourceRecipe.product] = 1
-        }
-    }
-    fmt.Println("Target Skill = ", targetSkill)
-    return []Recipe{Recipe{comps, Product{name, 1}}}
+func GenerateProductLineNM(Name string, skills []Skill, minSkills int, maxSkills int) []Recipe {
+	const NEW_SKILL_RARITY_FACTOR = 2
+	t := rand.Intn(len(skills)*NEW_SKILL_RARITY_FACTOR + 1)
+	var targetSkill Skill
+	if t == (len(skills) * NEW_SKILL_RARITY_FACTOR) {
+		targetSkill = Skill{[][]Recipe{}}
+	} else {
+		targetSkill = skills[t%len(skills)]
+	}
+	comps := make(map[Product]int)
+	var actualSkills int
+	if minSkills >= maxSkills {
+		actualSkills = minSkills
+	} else {
+		actualSkills = minSkills + rand.Intn(maxSkills-minSkills)
+	}
+	fmt.Printf("Making Product line from %v 'skills'\n", actualSkills)
+	for i := 0; i <= actualSkills; i++ {
+		var s int
+		for {
+			s = rand.Intn(len(skills))
+			if s != ((t) % len(skills)) {
+				break
+			}
+		}
+		sourceSkill := skills[s]
+		sourceRecipeIndex := rand.Intn(len(sourceSkill.ProductLines))
+		sourceRecipe := sourceSkill.ProductLines[sourceRecipeIndex][0]
+		_, ok := comps[sourceRecipe.Product]
+		if ok {
+			comps[sourceRecipe.Product] += 1
+		} else {
+			comps[sourceRecipe.Product] = 1
+		}
+	}
+	fmt.Println("Target Skill = ", targetSkill)
+	return []Recipe{{comps, Product{Name, 1}}}
 }
-
-
-
-
-//func main() {
-//    p1 := Product{"ore", 1}
-//    p2 := Product{"bar", 1}
-//
-//    p1_2 := Product{"ore", 2}
-//    p2_2 := Product{"bar", 2}
-//
-//    comps := make(map[Product]int)
-//    comps[p1] = 1
-//    smeltBar := Recipe{comps, p2}
-//
-//
-//    comps2 := make(map[Product]int)
-//    comps2[p1_2] = 1
-//    smeltBar2 := Recipe{comps2, p2_2}
-//
-//    otherRec := Recipe{map[Product]int{Product{"other", 1} : 1}, Product{"result", 1}}
-//    otherRec2 := Recipe{map[Product]int{Product{"autre", 1} : 1}, Product{"resultat", 1}}
-//
-//    _inv := make(map[string]int)
-//    _inv["ore"] = 1
-//    inv := Inventory{_inv}
-//
-//    fmt.Println("can make bar?")
-//    fmt.Println(inv.canCreate(p2, []Recipe{smeltBar}))
-//    inv.create(p2, smeltBar)
-//    fmt.Println("can do it again?")
-//    fmt.Println(inv.canCreate(p2, []Recipe{smeltBar}))
-//    inv.create(p2, smeltBar)
-//    mp := MakeProduct{smeltBar, 20}
-//    mp.do()
-//    fmt.Println(mp.getName())
-//
-//    s1 := []Skill{Skill{[]Recipe{smeltBar, otherRec}}, Skill{[]Recipe{smeltBar2, otherRec2}}}
-//    fmt.Printf("New product line: %v", generateProductLineNM(s1, 1,3))
-//
-//}
-
