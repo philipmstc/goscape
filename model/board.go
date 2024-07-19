@@ -1,7 +1,5 @@
 package model
 
-import "fmt"
-
 type Board struct {
 	Tiles map[*Tile]Position
 }
@@ -9,6 +7,9 @@ type Board struct {
 type Position struct {
 	x int
 	y int
+}
+func (pos Position) equals(other Position) bool {
+	return pos.x == other.x && pos.y == other.y
 }
 
 type MoveAction struct  {
@@ -29,27 +30,6 @@ var MoveLeft = MoveAction{-1, 0, "Go left"}
 var MoveRight = MoveAction{1, 0, "Go right"}
 var MoveUp = MoveAction{0, -1, "Go up"}
 var MoveDown = MoveAction{0, 1, "Go down"}
-
-type displaySkills struct {}
-var DisplaySkills = displaySkills{}
-type displayInv struct {}
-var DisplayInv = displayInv{}
-
-func (ds displaySkills) Do(player *Player) {
-	for name, skill := range(player.Skills) {
-		fmt.Printf("%v Level: %v (%v)\n", name, player.SkillsLevel[skill], player.SkillsXp[skill])
-	}
-}
-func (ds displaySkills) GetName() string { 
-	return "Check Skills Xp"
-}
-
-func (di displayInv) Do(player *Player) { 
-	fmt.Printf("%v", player.Items.Items)
-}
-func (di displayInv) GetName() string { 
-	return "Show Inventory"
-}
 
 func NewPosition(x int, y int) Position {
 	return Position{x, y}

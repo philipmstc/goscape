@@ -5,10 +5,6 @@ import (
 	"math/rand"
 )
 
-type Inventory struct {
-	Items map[string]int
-}
-
 type Skill struct {
 	ProductLines [][]Recipe
 }
@@ -39,8 +35,8 @@ type Product struct {
 	Tier int
 }
 
-func (this Product) String() string {
-	return fmt.Sprintf("%v-%v", this.Name, this.Tier)
+func (product Product) String() string {
+	return fmt.Sprintf("%v-%v", product.Name, product.Tier)
 }
 
 type Recipe struct {
@@ -48,18 +44,18 @@ type Recipe struct {
 	Product    Product
 }
 
-func (this Recipe) String() string {
-	if this.Components != nil {
+func (recipe Recipe) String() string {
+	if recipe.Components != nil {
 		var comps string = ""
-		for k, v := range this.Components {
+		for k, v := range recipe.Components {
 			comps = comps + fmt.Sprintf("%v*%v + ", v, k)
 		}
 		if len(comps) > 2 {
 			comps = comps[:len(comps)-2]
 		}
-		return fmt.Sprintf("Make %v from (%v)", this.Product, comps)
+		return fmt.Sprintf("Make %v from (%v)", recipe.Product, comps)
 	} else {
-		return fmt.Sprintf("(Free) %v", this.Product)
+		return fmt.Sprintf("(Free) %v", recipe.Product)
 	}
 }
 
@@ -79,8 +75,8 @@ type MakeProduct struct {
 }
 
 func (mk MakeProduct) Do(player *Player) {
-	if (player.Items.CanCreate(mk.Recipe.Product, []Recipe{mk.Recipe})) {
-		player.Items.Create(mk.Recipe.Product, mk.Recipe)
+	if (player.CanCreate(mk.Recipe.Product, []Recipe{mk.Recipe})) {
+		player.Create(mk.Recipe.Product, mk.Recipe)
 		player.processXp(mk.SkillsName, mk.XpGain)
 		fmt.Printf("xp: %v Recipe: %v", mk.XpGain, mk.Recipe)
 	} else { 
@@ -89,29 +85,7 @@ func (mk MakeProduct) Do(player *Player) {
 }
 
 func (mk MakeProduct) GetName() string {
-	return fmt.Sprintf("Make [%v] for %v xp", mk.Recipe.Product.Name, mk.XpGain)
-}
-
-// only works if theres only one Recipe per Product
-func (this Inventory) CanCreate(Product Product, RecipeBook []Recipe) bool {
-	for _, r := range RecipeBook {
-		if r.Product.Name == Product.Name {
-			for k, v := range r.Components {
-				if this.Items[k.Name] < v {
-					return false
-				}
-			}
-			return true
-		}
-	}
-	return false
-}
-
-func (this Inventory) Create(Product Product, Recipe Recipe) {
-	for k, v := range Recipe.Components {
-		this.Items[k.Name] -= v
-	}
-	this.Items[Recipe.Product.Name] += 1
+	return fmt.Sprintf("Make [%v] (+%v %v xp)", mk.Recipe.Product.Name, mk.XpGain, mk.SkillsName)
 }
 
 func GenerateProductLineNM(Name string, skills []Skill, minSkills int, maxSkills int) []Recipe {
