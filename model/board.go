@@ -36,7 +36,9 @@ type displayInv struct {}
 var DisplayInv = displayInv{}
 
 func (ds displaySkills) Do(player *Player) {
-	fmt.Printf("%v", player.SkillsXp)
+	for name, skill := range(player.Skills) {
+		fmt.Printf("%v Level: %v (%v)\n", name, player.SkillsLevel[skill], player.SkillsXp[skill])
+	}
 }
 func (ds displaySkills) GetName() string { 
 	return "Check Skills Xp"

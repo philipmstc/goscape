@@ -10,7 +10,17 @@ func GetAvailableActions(player Player, board Board, skills map[string]*Skill) [
 	}
 	comps := make(map[Product]int)
 	comps[Product{"no-cost",1}] = 1
-	action := MakeProduct{Recipe{Components: comps, Product: Product{fmt.Sprintf("test:%d,%d", player.CurrentPos.x, player.CurrentPos.y), 1}}, 100, skills["test"]}
+	action := MakeProduct{
+		Recipe{
+			Components: comps, 
+			Product: Product{
+				fmt.Sprintf("test:%d,%d", player.CurrentPos.x, player.CurrentPos.y),
+				1,
+			},
+		}, 
+		100, 
+		"test",
+	}
 	
 	newTile := NewTile(action)
 	board.Tiles[&newTile] = NewPosition(player.CurrentPos.x, player.CurrentPos.y)
@@ -32,6 +42,6 @@ func NewTile( action Action) Tile {
 func InitialTile(skills map[string]*Skill) Tile {
 	comps := make(map[Product]int)
 	mockAction := MakeProduct{
-		Recipe{Components: comps, Product: Product{"no-cost", 1}}, 100, skills["init"]}
+		Recipe{Components: comps, Product: Product{"no-cost", 1}}, 100,  "init"}
 	return NewTile( mockAction)
 }

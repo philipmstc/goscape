@@ -75,13 +75,13 @@ type Action interface {
 type MakeProduct struct {
 	Recipe Recipe
 	XpGain uint64
-	Skill *Skill
+	SkillsName string
 }
 
 func (mk MakeProduct) Do(player *Player) {
 	if (player.Items.CanCreate(mk.Recipe.Product, []Recipe{mk.Recipe})) {
 		player.Items.Create(mk.Recipe.Product, mk.Recipe)
-		player.SkillsXp[mk.Skill] += mk.XpGain;
+		player.processXp(mk.SkillsName, mk.XpGain)
 		fmt.Printf("xp: %v Recipe: %v", mk.XpGain, mk.Recipe)
 	} else { 
 		fmt.Printf("Cannot create, not enoguh components in inventory");
