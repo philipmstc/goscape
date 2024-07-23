@@ -3,6 +3,7 @@ package model
 import (
 	"fmt"
 	"math/rand"
+	"philipmstc/goscape/feature"
 )
 
 type Skill struct {
@@ -45,18 +46,21 @@ type Recipe struct {
 }
 
 func (recipe Recipe) String() string {
-	if recipe.Components != nil {
-		var comps string = ""
-		for k, v := range recipe.Components {
-			comps = comps + fmt.Sprintf("%v*%v + ", v, k)
+	if feature.DetailedRecipeStrings() {
+		if recipe.Components != nil {
+			var comps string = ""
+			for k, v := range recipe.Components {
+				comps = comps + fmt.Sprintf("%v*%v + ", v, k)
+			}
+			if len(comps) > 2 {
+				comps = comps[:len(comps)-2]
+			}
+			return fmt.Sprintf("Make %v from (%v)", recipe.Product, comps)
+		} else {
+			return fmt.Sprintf("(Free) %v", recipe.Product)
 		}
-		if len(comps) > 2 {
-			comps = comps[:len(comps)-2]
-		}
-		return fmt.Sprintf("Make %v from (%v)", recipe.Product, comps)
-	} else {
-		return fmt.Sprintf("(Free) %v", recipe.Product)
 	}
+	return fmt.Sprintf("%v tier %v", recipe.Product.Name, recipe.Product.Tier);
 }
 
 type Tile struct {
@@ -88,13 +92,15 @@ func (mk MakeProduct) GetName() string {
 	return fmt.Sprintf("Make [%v] (+%v %v xp)", mk.Recipe.Product.Name, mk.XpGain, mk.SkillsName)
 }
 
-func GenerateProductLineNM(Name string, skills []Skill, minSkills int, maxSkills int) []Recipe {
+func GenerateProductLineNM(Name string, skills []*Skill, minSkills int, maxSkills int) *Skill {
 	const NEW_SKILL_RARITY_FACTOR = 2
 	t := rand.Intn(len(skills)*NEW_SKILL_RARITY_FACTOR + 1)
-	var targetSkill Skill
+	var targetSkill *Skill
 	if t == (len(skills) * NEW_SKILL_RARITY_FACTOR) {
-		targetSkill = Skill{[][]Recipe{}}
+		fmt.Println("Making new skill")
+		targetSkill = &Skill{[][]Recipe{}}
 	} else {
+		fmt.Println("using existing skill")
 		targetSkill = skills[t%len(skills)]
 	}
 	comps := make(map[Product]int)
@@ -114,6 +120,7 @@ func GenerateProductLineNM(Name string, skills []Skill, minSkills int, maxSkills
 			}
 		}
 		sourceSkill := skills[s]
+		fmt.Printf("############ %v ########", len(sourceSkill.ProductLines)) 
 		sourceRecipeIndex := rand.Intn(len(sourceSkill.ProductLines))
 		sourceRecipe := sourceSkill.ProductLines[sourceRecipeIndex][0]
 		_, ok := comps[sourceRecipe.Product]
@@ -124,5 +131,7 @@ func GenerateProductLineNM(Name string, skills []Skill, minSkills int, maxSkills
 		}
 	}
 	fmt.Println("Target Skill = ", targetSkill)
-	return []Recipe{{comps, Product{Name, 1}}}
+	newProductLine := []Recipe{{comps, Product{Name, 1}}}
+	targetSkill.ProductLines = append(targetSkill.ProductLines, newProductLine)
+	return targetSkill
 }
