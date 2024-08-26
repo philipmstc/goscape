@@ -1,6 +1,7 @@
 package model
 
 import (
+	"slices"
 	"fmt"
 	"math/rand"
 	"philipmstc/goscape/feature"
@@ -8,6 +9,11 @@ import (
 
 type Skill struct {
 	ProductLines [][]Recipe
+}
+
+type TaggedSkill struct { 
+	Skill Skill 
+	Type string
 }
 
 func PrimaryResource(Name string, Tiers int) []Recipe {
@@ -92,6 +98,95 @@ func (mk MakeProduct) GetName() string {
 	return fmt.Sprintf("Make [%v] (+%v %v xp)", mk.Recipe.Product.Name, mk.XpGain, mk.SkillsName)
 }
 
+const targetPrimarySkillDensity float64 = 0.33
+const targetSecondarySkillDensity float64 = 0.33
+const targetTertiarySkillDensity float64 = 0.33
+
+
+func GenerateNewSkill(allSkills []*Skill) *Skill {
+	primary, secondary, tertiary := TagSkills(allSkills)
+	dp := delta(len(primary), len(allSkills)) / targetPrimarySkillDensity / 3 
+	ds := delta(len(secondary), len(allSkills)) / targetSecondarySkillDensity / 3
+	dt := delta(len(tertiary), len(allSkills)) / targetTertiarySkillDensity / 3
+	decision := rand.Float64() 
+
+	// 0 - - - - - - dp - - - - - - dp+ds - - - - - - dp+ds+dt == 1
+	//   primary       secondary         tertiary
+	
+	if (decision < dp) { 
+		// return newPrimarySkill()
+	} else if (decision < dp+ds) {
+		// return newSecondarySkill(primary)
+	} else if (decision < dp+ds+dt) {
+		// return newTertiarySkill(allSkills)
+	}
+	return nil
+}
+
+func delta(actual int, total int) float64 {
+	return float64(total) / float64(actual) 
+}
+
+func TagSkills(allSkills []*Skill) (primary []*Skill, secondary []*Skill, tertiary []*Skill) { 
+	productNameToSkill := make(map[string]*Skill)
+	for _, skill := range(allSkills) {
+		for _, productLine := range(skill.ProductLines) {
+			productNameToSkill[productLine[0].Product.Name] = skill
+		}
+	}
+
+	primarySkills := []*Skill{}
+	secondarySkills := []*Skill{}
+	tertiarySkills := []*Skill{}
+	for _, skill := range(allSkills) {
+		if (skill.isPrimary()) {
+			primarySkills = append(primarySkills, skill)
+		}
+	}
+
+	for _, skill := range(allSkills) { 
+		if (!slices.Contains(primarySkills, skill)) {
+			var candidatePrimarySource *Skill = nil 
+			isSecondary := true
+			for _, productLine := range(skill.ProductLines) {
+				if !isSecondary {
+					break
+				}
+				for _, recipe := range(productLine) {
+					for component, _ := range(recipe.Components) {
+						sourceSkill := productNameToSkill[component.Name]
+						if candidatePrimarySource == nil {
+							candidatePrimarySource = sourceSkill
+						} else if candidatePrimarySource != sourceSkill { 
+							isSecondary = false	
+						}
+					}
+				}
+			}
+			if isSecondary {
+				secondarySkills = append(secondarySkills, skill)
+			} else { 
+				tertiarySkills = append(tertiarySkills, skill)
+			}
+		}
+	}
+	return primarySkills, secondarySkills, tertiarySkills
+}
+
+func (skill *Skill) isPrimary() bool {
+	if len(skill.ProductLines) > 1 {
+		return false
+	}
+	for _, productLine := range(skill.ProductLines) {
+		for _, recipe := range(productLine) {
+			if len(recipe.Components) > 0 {
+				return false	
+			}
+		}		
+	}
+	return true
+}
+
 func GenerateProductLineNM(Name string, skills []*Skill, minSkills int, maxSkills int) *Skill {
 	const NEW_SKILL_RARITY_FACTOR = 2
 	t := rand.Intn(len(skills)*NEW_SKILL_RARITY_FACTOR + 1)
@@ -120,8 +215,13 @@ func GenerateProductLineNM(Name string, skills []*Skill, minSkills int, maxSkill
 			}
 		}
 		sourceSkill := skills[s]
-		fmt.Printf("############ %v ########", len(sourceSkill.ProductLines)) 
-		sourceRecipeIndex := rand.Intn(len(sourceSkill.ProductLines))
+		fmt.Println("`actual Skill` %v", sourceSkill)
+		sourcePLCount := len(sourceSkill.ProductLines)
+		fmt.Printf("############ %v ########", sourcePLCount) 
+		sourceRecipeIndex := 0
+		if (sourcePLCount > 0) {
+			sourceRecipeIndex = rand.Intn(sourcePLCount)
+		}
 		sourceRecipe := sourceSkill.ProductLines[sourceRecipeIndex][0]
 		_, ok := comps[sourceRecipe.Product]
 		if ok {

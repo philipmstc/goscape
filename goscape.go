@@ -3,12 +3,15 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
+	"math/rand"
 	"os"
-	"time"
+	"philipmstc/goscape/db"
+	"philipmstc/goscape/feature"
 	"philipmstc/goscape/model"
 	"strconv"
 	"strings"
-	"philipmstc/goscape/feature"
+	"time"
 )
 
 
@@ -27,20 +30,18 @@ func ShowAnimation(action model.Action) {
 	fmt.Println()
 }
 
-func main() {
-	var player model.Player
-	var board model.Board
-	var skills map[string]*model.Skill
-	feature.Load()
+func Load() (model.Player, model.Board, map[string]*model.Skill) {
 	if feature.IsNewGame() {
-		player = model.NewPlayer()
-		board = model.NewGameBoard()
-		skills = make(map[string]*model.Skill)
-		skills["primary-skill-1"] = &model.Skill{}
-		skills["secondary-skill-2"] = &model.Skill{}
-		tile1 := model.InitialTile(skills)
-		board.Tiles[&tile1] = model.NewPosition(0, 0)
+		db.InitDb()
 	}
+	player := db.GetPlayer()
+	board := db.GetBoard()
+	skills := db.GetAllSkills()	
+	return player, board, skills
+}
+
+func main() {
+	player, board, skills := Load()	
 	i := 1
 	for {
 		fmt.Println("Please choose an action: ")
@@ -58,6 +59,15 @@ func main() {
 		if choice, err := strconv.Atoi(input); err == nil && choice <= len(actions) && choice > -1 {
 			if (feature.IsAnimated()) { 
 				ShowAnimation(actions[choice-1])	
+				if rand.Float64() > (1.0/math.Pow(2, float64(len(skills)))) { 
+					skillsArray := []*model.Skill{}
+					for _, skill := range(skills) {
+						skillsArray = append(skillsArray, skill)
+					}
+					newSkill := model.GenerateNewSkill(skillsArray)
+					db.PersistSkill(newSkill,"new-" + string(len(skills)))
+					skills["new-" + string(len(skills))] = newSkill
+				}
 			}
 			actions[choice-1].Do(&player)
 		} else if err == nil {
@@ -95,6 +105,11 @@ func main() {
 				for _, skill := range(skills) { 
 					skillsArray = append(skillsArray, skill)
 				}
+				p, s, t := model.TagSkills(skillsArray)
+				fmt.Println(p)
+				fmt.Println(s)
+				fmt.Println(t)
+
 				newSkill := model.GenerateProductLineNM("next",skillsArray , 1, 5);
 				found := false
 				for name, skill := range(skills)  {
@@ -109,6 +124,10 @@ func main() {
 					i++
 					skills[newName] = newSkill
 					player.Skills[newName] = newSkill
+					err := db.PersistSkill(newSkill, newName)
+					if err != nil {
+					    fmt.Println(err)
+					}
 				}
 			default: 	
 				fmt.Printf("Invalid Selection %v", input)
