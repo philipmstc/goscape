@@ -65,8 +65,8 @@ func main() {
 						skillsArray = append(skillsArray, skill)
 					}
 					newSkill := model.GenerateNewSkill(skillsArray)
-					db.PersistSkill(newSkill,"new-" + string(len(skills)))
-					skills["new-" + string(len(skills))] = newSkill
+					db.PersistSkill(newSkill,"new-" + fmt.Sprint(len(skills)))
+					skills["new-" + fmt.Sprint(len(skills))] = newSkill
 				}
 			}
 			actions[choice-1].Do(&player)
@@ -74,6 +74,9 @@ func main() {
 			fmt.Println("Choice out of bounds")
 		} else {
 			switch input { 
+			case "p": 	
+				err := db.PersistSkills(skills)
+				fmt.Println(err)
 			case "w": 
 				model.MoveUp.Do(&player)
 			case "W": 
@@ -124,7 +127,7 @@ func main() {
 					i++
 					skills[newName] = newSkill
 					player.Skills[newName] = newSkill
-					err := db.PersistSkill(newSkill, newName)
+					err := db.PersistSkills(skills)
 					if err != nil {
 					    fmt.Println(err)
 					}

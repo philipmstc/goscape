@@ -63,8 +63,7 @@ func (ds displaySkills) Do(player *Player) {
 	for name, skill := range(player.Skills) {
 		currentLevel := player.SkillsLevel[skill]
 		fmt.Printf("%v Level: %v (%v/%v)\n", 
-		name,
-		currentLevel,
+		name, currentLevel,
 		player.SkillsXp[skill],
 		XP_PER_LEVEL[currentLevel])
 	}

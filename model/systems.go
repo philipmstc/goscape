@@ -27,7 +27,7 @@ func InitialTile(skills map[string]*Skill) Tile {
 	skills["primary-skill-1"].ProductLines = append(skills["primary-skill-1"].ProductLines, []Recipe{initialRecipe})
 	mockAction := MakeProduct{
 		initialRecipe, 100,  "primary-skill-1"}
-	return NewTile( mockAction)
+	return NewTile(mockAction)
 }
 
 func GenerateAction(player Player, skills map[string]*Skill) Action {

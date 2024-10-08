@@ -215,13 +215,14 @@ func GenerateProductLineNM(Name string, skills []*Skill, minSkills int, maxSkill
 			}
 		}
 		sourceSkill := skills[s]
-		fmt.Println("`actual Skill` %v", sourceSkill)
+		fmt.Printf("`actual Skill` %v\n", sourceSkill)
 		sourcePLCount := len(sourceSkill.ProductLines)
 		fmt.Printf("############ %v ########", sourcePLCount) 
 		sourceRecipeIndex := 0
 		if (sourcePLCount > 0) {
 			sourceRecipeIndex = rand.Intn(sourcePLCount)
 		}
+		fmt.Println(sourceSkill)
 		sourceRecipe := sourceSkill.ProductLines[sourceRecipeIndex][0]
 		_, ok := comps[sourceRecipe.Product]
 		if ok {
