@@ -1,7 +1,6 @@
 package model
 
 import (
-	"fmt"
 	"math"
 )
 
@@ -58,39 +57,26 @@ func (source *CombatStats) MaxSp() uint64 {
 }
 
 func (source *Color) ColorDamageModifier(target *Color) float64 {
-	// Red > Green > Blue > Red (2)
-	// Red < Blue < Green < Red (1/2)
-	// Red == Cyan == Red (1)
-	
-	// Red to green curve :: sin(3x/4)
-	// Gree to cyan curve (from reds perspective) :: sin(3x/2)
-
 	sourceHue := source.hue()
 	targetHue := target.hue()		
-	
-	fmt.Printf("%v vs %v = %.2f", source, target ,sourceHue - targetHue)
-	fmt.Println()
-	if (math.Abs(sourceHue - targetHue) <= 0.01) { 
-		return 0 
+
+	var mod float64 = 1.0
+	diff := targetHue - sourceHue
+	if (diff < 0) {
+		mod = -1.0
 	}
 
-	dir := 0.0
-	if (targetHue > sourceHue) { 
-		dir = 1
-	} else { 
-		dir = -1
+	if (math.Abs(diff) >= 0) {
+	 	if (math.Abs(diff) <= (2*math.Pi/3.0)) {
+			return mod * math.Sin(0.75*math.Abs(diff))
+		}
 	}
-
-	var po2 = 0.0
-	overclock := math.Abs((2*math.Pi/3)/(sourceHue-targetHue)) // how far away from a 3rd turn 
-	if (overclock > 1) {
-		fmt.Println("overclocked")
-		po2 = (dir * math.Sin( (3/2)*sourceHue))
-	} else { 
-		fmt.Println("not overclocked")
-		po2 = (dir * math.Sin( (3/2)*sourceHue))
+	if (math.Abs(diff) >= (2*math.Pi/3.0) ) {
+		if (math.Abs(diff) <= (4*math.Pi/3.0)) {
+			return mod * math.Cos(1.5 * (math.Abs(diff) - (2*math.Pi/3.0)))
+		}
 	}
-	return po2
+	return mod * -math.Sin(.75 * (math.Abs(diff) - (2*math.Pi/3.0)))
 }
 
 func (source *Color) hue() float64 {
@@ -99,16 +85,12 @@ func (source *Color) hue() float64 {
 	var max = max(source.Red, source.Green, source.Blue)
 
 	if (source.Red >= source.Green && source.Red >= source.Blue) {
-		hue = float64(source.Green - source.Blue) / float64(max - min)
+		hue = (float64(source.Green) - float64(source.Blue)) / float64(max - min)
 	} else if (source.Green >= source.Red && source.Green >= source.Blue) { 
-		hue = 2.0 + float64(source.Blue - source.Red) / float64(max - min)
+		hue = 2.0 + (float64(source.Blue) - float64(source.Red)) / float64(max - min)
 	} else if (source.Blue >= source.Red && source.Blue >= source.Green) { 
-		hue = 4.0 + float64(source.Red - source.Green) / float64(max - min)
-	} else  {
-		fmt.Println("At least one color should be the maximum")
-		fmt.Println(source)
+		hue = 4.0 + (float64(source.Red) - float64(source.Green)) / float64(max - min)
 	}
-
 	hueRads := hue * (math.Pi/3.0)  
 	if (hueRads < 0) { 
 		hueRads = hueRads + (2*math.Pi)
