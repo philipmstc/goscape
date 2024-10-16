@@ -2,6 +2,7 @@ package model
 
 import (
 	"math"
+	// "fmt"
 )
 
 type CombatStats struct { 
@@ -57,26 +58,23 @@ func (source *CombatStats) MaxSp() uint64 {
 }
 
 func (source *Color) ColorDamageModifier(target *Color) float64 {
-	sourceHue := source.hue()
-	targetHue := target.hue()		
-
 	var mod float64 = 1.0
-	diff := targetHue - sourceHue
+	diff := target.hue() - source.hue()
 	if (diff < 0) {
 		mod = -1.0
 	}
 
-	if (math.Abs(diff) >= 0) {
-	 	if (math.Abs(diff) <= (2*math.Pi/3.0)) {
-			return mod * math.Sin(0.75*math.Abs(diff))
-		}
+	diff = math.Abs(diff)
+	if (diff >= 0 && diff <= (2*math.Pi/3.0)) {
+		return mod * math.Sin((3/4.0)*diff)
 	}
-	if (math.Abs(diff) >= (2*math.Pi/3.0) ) {
-		if (math.Abs(diff) <= (4*math.Pi/3.0)) {
-			return mod * math.Cos(1.5 * (math.Abs(diff) - (2*math.Pi/3.0)))
-		}
+
+	diff -= (2*math.Pi/3.0)
+	if (diff >= 0 && diff <= (2*math.Pi/3.0)) {
+		return mod * math.Cos((3/2.0) * diff)
 	}
-	return mod * -math.Sin(.75 * (math.Abs(diff) - (2*math.Pi/3.0)))
+	
+	return mod * -math.Sin((3/4.0) * diff)
 }
 
 func (source *Color) hue() float64 {
@@ -93,7 +91,7 @@ func (source *Color) hue() float64 {
 	}
 	hueRads := hue * (math.Pi/3.0)  
 	if (hueRads < 0) { 
-		hueRads = hueRads + (2*math.Pi)
+		hueRads += 2*math.Pi
 	}
 	return hueRads
 }
